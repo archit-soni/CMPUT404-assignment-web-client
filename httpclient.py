@@ -33,7 +33,12 @@ class HTTPResponse(object):
         self.body = body
 
 class HTTPClient(object):
-    #def get_host_port(self,url):
+    def get_host_port(self,url):
+        port = urllib.parse.urlparse(url).port
+        if port is None:
+            return urllib.parse.urlparse(url).hostname, 80
+        return urllib.parse.urlparse(url).hostname, port
+
 
     def connect(self, host, port):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -41,13 +46,13 @@ class HTTPClient(object):
         return None
 
     def get_code(self, data):
-        return None
+        return data.split('\r\n')[0].split(" ")[1]
 
     def get_headers(self,data):
-        return None
+        return data.split('\r\n\r\n')[0]
 
     def get_body(self, data):
-        return None
+        return data.split('\r\n\r\n')[1]
     
     def sendall(self, data):
         self.socket.sendall(data.encode('utf-8'))
@@ -68,13 +73,37 @@ class HTTPClient(object):
         return buffer.decode('utf-8')
 
     def GET(self, url, args=None):
-        code = 500
-        body = ""
+        host, port = self.get_host_port(url)
+        path = urllib.parse.urlparse(url).path
+        if not path:
+            path = '/'
+        self.connect(host, port)
+        self.sendall("GET "+path+" HTTP/1.1\r\nHost: "+host+"\r\nConnection: close\r\n\r\n")
+        json = self.recvall(self.socket)
+        code = int(self.get_code(json))
+        body = self.get_body(json)
+        print(body)
+        self.close()
         return HTTPResponse(code, body)
 
     def POST(self, url, args=None):
-        code = 500
-        body = ""
+        host, port = self.get_host_port(url)
+        path = urllib.parse.urlparse(url).path
+        self.connect(host,port)
+        if not path:
+            path = '/'
+        if args:
+            args = urllib.parse.urlencode(args)
+            clen = len(args)
+            self.sendall("POST "+path+" HTTP/1.1\r\nHost: "+host+"\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: "+str(clen)+"\r\nConnection: close\r\n\r\n"+args+"\r\n\r\n")
+        else:
+            clen = 0
+            self.sendall("POST "+path+" HTTP/1.1\r\nHost: "+host+"\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: "+str(clen)+"\r\nConnection: close\r\n\r\n")
+        json = self.recvall(self.socket)
+        code = int(self.get_code(json))
+        body = self.get_body(json)
+        print(body)
+        self.close()
         return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):
