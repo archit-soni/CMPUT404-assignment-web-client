@@ -35,7 +35,7 @@ class HTTPResponse(object):
 class HTTPClient(object):
     def get_host_port(self,url):
         port = urllib.parse.urlparse(url).port
-        if port is None:
+        if not port:
             return urllib.parse.urlparse(url).hostname, 80
         return urllib.parse.urlparse(url).hostname, port
 
@@ -78,10 +78,10 @@ class HTTPClient(object):
         if not path:
             path = '/'
         self.connect(host, port)
-        self.sendall("GET "+path+" HTTP/1.1\r\nHost: "+host+"\r\nConnection: close\r\n\r\n")
-        json = self.recvall(self.socket)
-        code = int(self.get_code(json))
-        body = self.get_body(json)
+        self.sendall("GET "+path+" HTTP/1.1\r\nHost: "+host+"\r\nUser-Agent:Linux\r\nConnection: close\r\n\r\n")
+        blurb = self.recvall(self.socket)
+        code = int(self.get_code(blurb))
+        body = self.get_body(blurb)
         print(body)
         self.close()
         return HTTPResponse(code, body)
@@ -95,13 +95,13 @@ class HTTPClient(object):
         if args:
             args = urllib.parse.urlencode(args)
             clen = len(args)
-            self.sendall("POST "+path+" HTTP/1.1\r\nHost: "+host+"\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: "+str(clen)+"\r\nConnection: close\r\n\r\n"+args+"\r\n\r\n")
+            self.sendall("POST "+path+" HTTP/1.1\r\nHost: "+host+"\r\nContent-Type: application/x-www-form-urlencoded\r\nUser-Agent:Linux\r\nContent-Length: "+str(clen)+"\r\nConnection: close\r\n\r\n"+args+"\r\n\r\n")
         else:
             clen = 0
-            self.sendall("POST "+path+" HTTP/1.1\r\nHost: "+host+"\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: "+str(clen)+"\r\nConnection: close\r\n\r\n")
-        json = self.recvall(self.socket)
-        code = int(self.get_code(json))
-        body = self.get_body(json)
+            self.sendall("POST "+path+" HTTP/1.1\r\nHost: "+host+"\r\nContent-Type: application/x-www-form-urlencoded\r\nUser-Agent:Linux\r\nContent-Length: "+str(clen)+"\r\nConnection: close\r\n\r\n")
+        blurb = self.recvall(self.socket)
+        code = int(self.get_code(blurb))
+        body = self.get_body(blurb)
         print(body)
         self.close()
         return HTTPResponse(code, body)
